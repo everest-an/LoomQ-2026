@@ -60,11 +60,13 @@ cloud.spinq.cn → 平台 `get_platform()` 均验证通过；认证失败信息
 
 ## 6. 覆盖范围声明
 
-- L1：三后端（spinq/originq/braket）全部打通，12 门白名单全覆盖
+- L1：三后端（spinq/originq/braket）全部打通，12 门白名单全覆盖；
+  三平台官方 SDK 交叉验证通过（pyqpanda 0.996 / spinqit 1.000 / braket 0.996）
 - L2：agent_chat 三类任务 + 生成→自验→重试闭环 + 交互 CLI（含新手引导）
 - L3：Hybrid-QASM 经典块 → RISC-V 汇编，穷举正确性验证
 - Bonus：自定义量子 RISC-V 扩展指令（规格/模拟器/端到端测试三件套）
-- 待补：L1 真机证据（SpinQ Cloud 账号公钥配置后采集）
+- L1 真机：braket 平台已采集（job_id 见 `evidence/files/braket-*-result.json`，
+  按赛题第七节 LocalSimulator 替代条款）；spinq 平台待 SpinQ 云公钥配置后采集
 
 ## 7. 复现命令（干净环境）
 

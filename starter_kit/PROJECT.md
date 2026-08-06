@@ -101,5 +101,7 @@ FHB 论文对此有明确边界说明。）
   本源官方 SDK（pyqpanda 3.8.5）独立交叉验证通过（bell fidelity 0.996 / ghz3 0.993）
 - **L2 智能体**：✅ agent_chat 三类任务 + 交互 CLI（客观分与交互分全申报）
 - **L3 混合编译**：✅ Hybrid-QASM → RISC-V，穷举验证通过
-- **L1 真机**：待申报（见 evidence/README.md）；接入脚本 `examples/run_spinq_cloud.py`
-  已按 SpinQ Cloud 官方文档（SSH 密钥认证 + superconductor_vp 超导真机）就绪
+- **L1 真机**：braket 平台已申报（+5，LocalSimulator 按赛题第七节替代条款，
+  证据见 `evidence/files/braket-*-result.json`）；spinq 平台待采集
+  （接入脚本 `examples/run_spinq_cloud.py` 已按 SpinQ Cloud 官方文档就绪，
+  等待平台 SSH 公钥配置后执行）
