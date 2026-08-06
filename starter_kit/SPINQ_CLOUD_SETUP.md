@@ -50,5 +50,14 @@ python examples/run_spinq_cloud.py \
 - 采集脚本：✅ `examples/run_spinq_cloud.py` 已按官方文档写好
 - 平台：✅ `superconductor_vp`（8 比特超导真机）已在 backend_capabilities 确认
 
+## 环境注意事项（antlr4 版本冲突）
+
+- `spinqit 0.2.4` 强制要求 `antlr4-python3-runtime==4.9.2`；
+- `amazon-braket-sdk` 需要更高的 antlr4（4.13.2 实测可用）；
+- 两者**不可共存于同一环境**。运行时请用独立环境：
+  - spinqit 环境：`pip install spinqit antlr4-python3-runtime==4.9.2`
+  - braket 环境：`pip install amazon-braket-sdk`（antlr4 会自动升级）
+- 已采集的 braket 证据与 spinq/spinqit 交叉验证不受此冲突影响（各自在合适环境中完成并入库）。
+
 > 注意：私钥 `id_rsa_spinq` 留在本机，**不要提交到仓库**（.gitignore 之外的
 > 凭证都不应入库）。脚本通过 `--keyfile` 参数引用。
