@@ -11,7 +11,7 @@
 ✅ 本地提交预检通过
 Team ID: everest-an
 Fork repository: https://github.com/everest-an/LoomQ-2026
-Commit SHA: fa39459591e8c9043f8201e89914d74afae60e9d
+Commit SHA: afcbfddaaea7112429579d3e9740c4bfc076b486
 Deadline: 2026-08-25 12:00 UTC+8
 ```
 
