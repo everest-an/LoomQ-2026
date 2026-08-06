@@ -21,11 +21,17 @@ try:
     from .qasm_parser import parse_qasm2
     from .simulator import simulate
     from . import codegen
+    from . import agent as _agent
+    from .hybrid_parser import split_hybrid, parse_classic
+    from .riscv_codegen import compile_classic_block
 except ImportError:  # standalone-module fallback (evaluator imports adapter by path)
     from circuit_ir import Circuit
     from qasm_parser import parse_qasm2
     from simulator import simulate
     import codegen
+    import agent as _agent
+    from hybrid_parser import split_hybrid, parse_classic
+    from riscv_codegen import compile_classic_block
 
 
 SUPPORTED_TARGETS = ("spinq", "originq", "braket")
@@ -87,11 +93,12 @@ def run(qasm_str: str, target: str, shots: int) -> Dict[str, Any]:
 
 def agent_chat(prompt: str) -> str:
     """Optional L2 entry point using the documented LOOMQ_LLM_* environment."""
-    raise NotImplementedError("L2 is optional; implement agent_chat(prompt) to enter")
+    return _agent.agent_chat(prompt)
 
 
 def compile_hybrid(hybrid_qasm_str: str) -> Tuple[List[str], str]:
     """Optional L3 entry point. Return quantum operations and RISC-V assembly."""
-    raise NotImplementedError(
-        "L3 is optional; implement compile_hybrid(hybrid_qasm_str) to enter"
-    )
+    split = split_hybrid(hybrid_qasm_str)
+    stmts = parse_classic(split.classic_text)
+    assembly = compile_classic_block(stmts)
+    return split.quantum_ops, assembly
