@@ -44,7 +44,9 @@
 | `selftest_fhb.py` | FHB 闭式解：转译器语义保持（t=π/4 均匀、t=π 回返） | `python3 starter_kit/selftest_fhb.py` |
 | `selftest_l3.py` | 混合编译：穷举测量注入 vs 参考解释器 | `python3 starter_kit/selftest_l3.py` |
 | `selftest_roundtrip.py` | 隐藏电路风格（QFT-4/Grover-3/随机）转译位级一致 | `python3 starter_kit/selftest_roundtrip.py` |
-| `examples/verify_originir.py` | **本源官方 SDK 交叉验证**：pyqpanda 解析并运行我们的 OriginIR（评测器视角的独立确认） | 在 python:3.10 + pyqpanda 容器中运行 |
+| `examples/verify_originir.py` | **本源官方 SDK 交叉验证**：pyqpanda 解析并运行我们的 OriginIR | 在 python:3.10 + pyqpanda 容器中运行 |
+| `examples/verify_spinq_sim.py` | **量旋官方 SDK 交叉验证**：spinqit 编译运行我们的 spinq QASM 2.0（fidelity 1.000） | 在 python:3.10 + spinqit 容器中运行 |
+| `examples/verify_braket.py` | **AWS 官方 SDK 交叉验证**：Braket LocalSimulator 解析运行我们的 braket QASM 3（fidelity 0.996/0.999） | 在 python:3.10 + amazon-braket-sdk 容器中运行（依赖同目录 vendored `stdgates.inc`，Apache-2.0，vendored 自 OpenQASM 项目 commit 4ca1d793） |
 
 ## 快速上手
 
