@@ -80,7 +80,16 @@ def main() -> int:
     print("编译为 SpinQit IR 完成，量子比特数: %s" % getattr(ir, "qnum", "?"))
 
     print("连接 SpinQ Cloud (%s, 平台 %s) ..." % (args.username, args.platform))
-    backend = get_spinq_cloud(args.username, keyfile)
+    try:
+        backend = get_spinq_cloud(args.username, keyfile)
+    except Exception as exc:
+        print("认证失败：%s" % exc, file=sys.stderr)
+        print("排查建议：", file=sys.stderr)
+        print("  1. 确认 --username 与 cloud.spinq.cn 登录用户名一致；", file=sys.stderr)
+        print("  2. 确认 --keyfile 指向本机私钥（id_rsa_spinq）；", file=sys.stderr)
+        print("  3. 确认该私钥的公钥已添加到 cloud.spinq.cn 的 SSH 密钥管理；", file=sys.stderr)
+        print("  完整步骤见 starter_kit/SPINQ_CLOUD_SETUP.md", file=sys.stderr)
+        return 1
     platform = backend.get_platform(args.platform)
     print("平台 %s 可用机器数: %s" % (args.platform, getattr(platform, "machine_count", "?")))
     if not platform.available():
