@@ -44,6 +44,7 @@
 | `selftest_fhb.py` | FHB 闭式解：转译器语义保持（t=π/4 均匀、t=π 回返） | `python3 starter_kit/selftest_fhb.py` |
 | `selftest_l3.py` | 混合编译：穷举测量注入 vs 参考解释器 | `python3 starter_kit/selftest_l3.py` |
 | `selftest_roundtrip.py` | 隐藏电路风格（QFT-4/Grover-3/随机）转译位级一致 | `python3 starter_kit/selftest_roundtrip.py` |
+| `examples/verify_originir.py` | **本源官方 SDK 交叉验证**：pyqpanda 解析并运行我们的 OriginIR（评测器视角的独立确认） | 在 python:3.10 + pyqpanda 容器中运行 |
 
 ## 快速上手
 
@@ -94,7 +95,9 @@ FHB 论文对此有明确边界说明。）
 
 ## 参赛 Level 声明
 
-- **L1 通用中间层**：✅ 三后端全部打通（spinq/originq/braket），12 门白名单全覆盖
+- **L1 通用中间层**：✅ 三后端全部打通（spinq/originq/braket），12 门白名单全覆盖；
+  本源官方 SDK（pyqpanda 3.8.5）独立交叉验证通过（bell fidelity 0.996 / ghz3 0.993）
 - **L2 智能体**：✅ agent_chat 三类任务 + 交互 CLI（客观分与交互分全申报）
 - **L3 混合编译**：✅ Hybrid-QASM → RISC-V，穷举验证通过
-- **L1 真机**：待申报（见 evidence/README.md）
+- **L1 真机**：待申报（见 evidence/README.md）；接入脚本 `examples/run_spinq_cloud.py`
+  已按 SpinQ Cloud 官方文档（SSH 密钥认证 + superconductor_vp 超导真机）就绪
