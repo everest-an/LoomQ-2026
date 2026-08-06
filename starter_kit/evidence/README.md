@@ -2,7 +2,7 @@
 
 ## 队伍信息
 
-- 团队名称：Awareness
+- 团队名称：everest-an
 - 提交账号（Team ID）：everest-an
 
 这份文件是人工评分材料的统一入口。请直接编辑它，只填写要申报的项目。截图、原始结果或图表统一放在 `starter_kit/evidence/files/`，也可以引用 `starter_kit/` 中已有的代码和文档。
