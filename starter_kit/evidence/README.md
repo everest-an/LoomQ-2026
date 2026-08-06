@@ -24,6 +24,32 @@
 每个有效真机平台计 5 分，最多两个平台。模拟器不计真机分。每个平台复制并填写一次下面的信息：
 
 ```text
+平台名称：spinq（量旋 SpinQ 云真机 gemini_vp，2 比特）
+平台 job ID：
+  evidence/files/spinq-bell-result.json  -> G-260807-0002
+运行时间：2026-08-06T16:59:51Z（UTC，赛程窗口内）
+shots：8192
+实际执行的 QASM：starter_kit/circuits/bell.qasm（经中间层剥离显式测量后提交，云平台自动末尾测量）
+平台返回的原始结果：evidence/files/spinq-bell-result.json（含 counts + probabilities）
+任务页截图：待补（平台任务页含任务号 G-260807-0002，可溯源）
+```
+
+```text
+平台名称：spinq（量旋 SpinQ 云真机 triangulum_vp，3 比特）
+平台 job ID：
+  evidence/files/spinq-ghz3-result.json  -> S-260807-0001
+运行时间：2026-08-06T17:02:28Z（UTC，赛程窗口内）
+shots：8192
+实际执行的 QASM：starter_kit/circuits/ghz3.qasm（经中间层剥离显式测量后提交，云平台自动末尾测量）
+平台返回的原始结果：evidence/files/spinq-ghz3-result.json（含 counts + probabilities）
+任务页截图：待补（平台任务页含任务号 S-260807-0001，可溯源）
+```
+
+> spinq 平台两个任务的主峰均命中理想分布（Bell: 00/11 合计 86.4%；
+> GHZ3: 000/111 为前两大态，真机噪声允许）。任务号 G-260807-0002 /
+> S-260807-0001 可在量旋云控制台任务页溯源复核。
+
+```text
 平台名称：braket（AWS Braket LocalSimulator）
 平台 job ID：
   evidence/files/braket-bell-result.json  -> b18ebd6d-cf17-4248-9d0d-ac860a909a5f

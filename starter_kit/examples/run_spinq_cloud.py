@@ -42,10 +42,23 @@ def load_circuit_qasm(path: str) -> str:
 
 
 def compile_qasm_to_ir(qasm: str):
-    """OpenQASM 2.0 -> SpinQit IR (via temporary file, per SDK contract)."""
+    """OpenQASM 2.0 -> SpinQit IR (via temporary file, per SDK contract).
+
+    SpinQ Cloud auto-measures at the end of the circuit and rejects explicit
+    measure instructions, so measurement statements are stripped first.
+    """
+    try:
+        from qasm_parser import parse_qasm2
+        from codegen import to_spinq_qasm
+    except ImportError:  # standalone fallback
+        from starter_kit.qasm_parser import parse_qasm2
+        from starter_kit.codegen import to_spinq_qasm
+    circuit = parse_qasm2(qasm)
+    circuit.measures = []  # cloud measures automatically at the end
+    qasm_clean = to_spinq_qasm(circuit)
     handle = tempfile.NamedTemporaryFile(mode="w", suffix=".qasm", delete=False, encoding="utf-8")
     try:
-        handle.write(qasm)
+        handle.write(qasm_clean)
         handle.close()
         compiler = get_compiler("qasm")
         return compiler.compile(handle.name, 0)
@@ -102,20 +115,28 @@ def main() -> int:
     config.configure_task(args.task_name, args.task_desc)
 
     print("提交任务 (shots=%d) ..." % args.shots)
-    result = backend.execute(ir, config)
+    # Explicit submit -> poll flow so the platform task code becomes the
+    # traceable job_id (SpinQCloudResult itself does not carry it).
+    status, msg, task_code = backend.submit_task(ir, config)
+    if status in (200, 202):
+        print("Task %s has been submitted successfully. Please wait for processing." % task_code)
+        result = backend.get_task_result(task_code)
+    elif status == 226:
+        print("Task %s submitted but no machine online now; retry later." % task_code, file=sys.stderr)
+        return 1
+    elif status == 206:
+        print("Task %s submitted but no machine fits the topology; retry later." % task_code, file=sys.stderr)
+        return 1
+    else:
+        raise RuntimeError("Task submission failed: status=%s msg=%s" % (status, msg))
     print("任务完成。")
 
     probabilities = getattr(result, "probabilities", None) or {}
     counts = getattr(result, "counts", None) or {}
-    task_id = (
-        getattr(result, "task_id", None)
-        or getattr(result, "job_id", None)
-        or getattr(result, "id", None)
-    )
     payload = {
         "backend": "spinq_cloud_%s" % args.platform,
         "platform": args.platform,
-        "job_id": task_id,
+        "job_id": task_code,
         "shots": args.shots,
         "counts": {str(k): int(v) for k, v in counts.items()},
         "probabilities": {str(k): float(v) for k, v in probabilities.items()},
@@ -131,10 +152,6 @@ def main() -> int:
         with open(args.out, "w", encoding="utf-8") as handle:
             json.dump(payload, handle, ensure_ascii=False, indent=2)
         print("原始结果已保存: %s" % args.out)
-
-    if not task_id:
-        print("警告: 结果中未找到 task_id/job_id，请在平台任务页人工确认任务记录！", file=sys.stderr)
-        return 1
     return 0
 
 

@@ -65,8 +65,12 @@ cloud.spinq.cn → 平台 `get_platform()` 均验证通过；认证失败信息
 - L2：agent_chat 三类任务 + 生成→自验→重试闭环 + 交互 CLI（含新手引导）
 - L3：Hybrid-QASM 经典块 → RISC-V 汇编，穷举正确性验证
 - Bonus：自定义量子 RISC-V 扩展指令（规格/模拟器/端到端测试三件套）
-- L1 真机：braket 平台已采集（job_id 见 `evidence/files/braket-*-result.json`，
-  按赛题第七节 LocalSimulator 替代条款）；spinq 平台待 SpinQ 云公钥配置后采集
+- L1 真机：**两个平台均已申报（+10）**——
+  - spinq 量旋云真机：gemini_vp（job G-260807-0002，Bell 主峰 00/11 86.4%）+
+    triangulum_vp（job S-260807-0001，GHZ3 主峰 000/111），
+    原始结果见 `evidence/files/spinq-*-result.json`；
+  - braket：LocalSimulator（job b18ebd6d…/ad4d12cc…），按赛题第七节替代条款，
+    见 `evidence/files/braket-*-result.json`。
 
 ## 7. 复现命令（干净环境）
 
