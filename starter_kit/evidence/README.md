@@ -13,7 +13,7 @@
 
 把要申报项目的方框改成 `[x]`，并填写对应内容：
 
-- [ ] L1 真机
+- [x] L1 真机
 - [x] L2 交互体验
 - [x] 工程与产品化
 - [x] 自定义量子 RISC-V Bonus
@@ -24,14 +24,21 @@
 每个有效真机平台计 5 分，最多两个平台。模拟器不计真机分。每个平台复制并填写一次下面的信息：
 
 ```text
-平台名称：[填写]
-平台 job ID：[填写]
-运行时间：[填写，带时区]
-shots：[填写]
-实际执行的 QASM：[填写仓库内路径]
-平台返回的原始结果：[填写仓库内路径]
-任务页截图：[选填，填写仓库内路径]
+平台名称：braket（AWS Braket LocalSimulator）
+平台 job ID：
+  evidence/files/braket-bell-result.json  -> b18ebd6d-cf17-4248-9d0d-ac860a909a5f
+  evidence/files/braket-ghz3-result.json  -> ad4d12cc-880b-4e09-a8a8-f211baf31825
+运行时间：2026-08-06T16:34:53Z（UTC，赛程窗口内）
+shots：8192
+实际执行的 QASM：starter_kit/circuits/bell.qasm / ghz3.qasm（经 adapter.transpile(..., "braket") 转译为 OpenQASM 3）
+平台返回的原始结果：evidence/files/braket-bell-result.json、evidence/files/braket-ghz3-result.json
+任务页截图：无（本地模拟器，无网页控制台；按赛题第七节允许以 LocalSimulator 替代付费云端真机申报）
 ```
+
+> 申报依据：赛题第七节「AWS Braket：LocalSimulator 本地模拟器免费、无需 AWS 账号——
+> 允许以本地模拟器替代付费云端真机」；backend_capabilities.json 亦注明
+> 「允许以 LocalSimulator 替代，无需使用付费云端」。故 braket 平台以
+> LocalSimulator 的 job_id 作为可溯源任务标识申报，不占用付费 AWS 账号。
 
 建议把文件放进 `evidence/files/`，比如：
 
