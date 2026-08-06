@@ -16,8 +16,8 @@
 - [ ] L1 真机
 - [x] L2 交互体验
 - [x] 工程与产品化
-- [ ] 自定义量子 RISC-V Bonus
-- [ ] 新手引导与视觉叙事 Bonus
+- [x] 自定义量子 RISC-V Bonus
+- [x] 新手引导与视觉叙事 Bonus
 
 ## L1 真机
 
@@ -97,9 +97,9 @@ CLI 内置新手引导（欢迎页 + help 命令）、电路可视化（ASCII �
 以下三项必须齐全且测试通过，才获得 8 分：
 
 ```text
-指令编码规格：[填写文档路径]
-模拟器扩展实现：[填写代码路径]
-端到端测试命令：[填写命令或文档路径]
+指令编码规格：starter_kit/riscv_quantum_isa.md（opcode 0xF + qop 字段 + Q14 定点参数，含二进制编码示例）
+模拟器扩展实现：starter_kit/riscv_emulator_quantum.py（fork 官方模拟器，新增 qinit/qh/qx/qrz/qry/qcx/qswap/qm 指令，测量写回 x10+k 并坍缩）
+端到端测试命令：python3 starter_kit/selftest_quantum_isa.py（编码往返/贝尔态测量反馈/旋转精度/经典回归，5/5 通过）
 ```
 
 ## 新手引导与视觉叙事 Bonus
@@ -107,10 +107,10 @@ CLI 内置新手引导（欢迎页 + help 命令）、电路可视化（ASCII �
 请填写已有材料的路径，不要求为评分另写一套文档：
 
 ```text
-零基础首次运行指南：[填写]
-量子概念解释：[填写]
-结果可视化：[填写]
-错误恢复或无障碍引导：[填写]
+零基础首次运行指南：starter_kit/cli.py 欢迎页 + help 命令（启动方法见本文档「L2 交互体验」）
+量子概念解释：CLI 内置 tutorial 命令（量子计算 101：比特/叠加/纠缠/门/分布图解读，输入 tutorial 即可查看）
+结果可视化：CLI 的 ASCII 概率分布条 + 结果解读（「几乎确定输出 X」/「纠缠叠加态特征」），见 verify_and_explain()
+错误恢复或无障碍引导：模型调用失败时给出 LOOMQ_LLM_* 排查建议；电路解析失败时提示换种说法重试或让模型修复
 ```
 
 以上四项各 1 分。普通项目 README 完整不代表自动获得 Bonus。

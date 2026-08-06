@@ -48,11 +48,44 @@ WELCOME = """
 HELP_TEXT = """
 命令：
   help      显示本帮助
+  tutorial  量子计算 101 速览（3 分钟看懂结果图）
   circuit   显示最近一次生成的 QASM
   native    显示最近电路转译到目标平台的原生代码
   quit      退出
 
 后端：spinq / originq / braket（默认 braket，本地模拟器免费无需账号）
+"""
+
+TUTORIAL_TEXT = """
+量子计算 101 · 3 分钟速览
+────────────────────────────────────────
+1. 比特 vs 量子比特（qubit）
+   经典比特只有 0 或 1；量子比特可以处于「叠加态」——
+   同时是 0 和 1 的某种组合，测量时才"落地"成 0 或 1。
+
+2. 叠加与概率
+   一个 qubit 有概率 p0 测到 0，p1 测到 1（p0 + p1 = 1）。
+   我们 CLI 里画的分布图（# 条）就是多次测量的统计结果。
+
+3. 纠缠（最反直觉的部分）
+   两个 qubit 纠缠后，它们的状态"绑定"在一起：
+   测第一个必得第二个——比如贝尔态，要么都是 0、要么都是 1，
+   绝不出现 01 或 10。你在结果图里看到 00/11 各半就是它。
+
+4. 门 = 对状态的旋转操作
+   H（Hadamard）制造叠加；X 翻转；CX 制造纠缠；
+   RZ/RY 旋转角度。电路就是这些门的序列。
+
+5. 怎么读懂 CLI 的输出
+   - 结果几乎全落在少数几个态上 → 确定性/制备成功
+   - 结果均匀分散 → 叠加态或纠缠态的特征
+   - 出现意料外的态 → 换句话问，或检查电路
+
+6. 这跟你的生活有什么关系
+   量子计算机擅长模拟自然、组合优化、密码学等。
+   本工具让"不懂黑话的你"也能指挥它——这就是平权。
+────────────────────────────────────────
+输入 help 返回命令菜单。
 """
 
 _BAR_WIDTH = 40
@@ -75,6 +108,8 @@ def verify_and_explain(qasm: str, backend: str, shots: int) -> None:
         circuit = parse_qasm2(qasm)
     except Exception as exc:
         print("  [!] 生成的电路无法解析：%s: %s" % (type(exc).__name__, exc))
+        print("  提示：可以换种说法重试，例如「生成 2 比特贝尔态」；"
+              "或输入 circuit 查看已生成的代码，把问题告诉模型让它修复。")
         return
     counts = simulate(circuit, shots)
     top = max(counts, key=counts.get)
@@ -124,6 +159,9 @@ def main() -> int:
         if prompt.lower() in ("help", "帮助"):
             print(HELP_TEXT)
             continue
+        if prompt.lower() in ("tutorial", "教程", "新手", "101"):
+            print(TUTORIAL_TEXT)
+            continue
         if prompt.lower() in ("circuit", "qasm"):
             print(last_qasm if last_qasm else "还没有生成过电路。")
             continue
@@ -137,6 +175,8 @@ def main() -> int:
             reply = adapter.agent_chat(prompt)
         except Exception as exc:
             print("  [!] 模型调用失败：%s: %s" % (type(exc).__name__, exc))
+            print("  排查建议：检查 LOOMQ_LLM_BASE_URL / LOOMQ_LLM_API_KEY / LOOMQ_LLM_MODEL"
+                  " 是否正确，以及网络是否可达；也可以输入 tutorial 学习基础概念后重试。")
             continue
         elapsed = time.monotonic() - started
 
