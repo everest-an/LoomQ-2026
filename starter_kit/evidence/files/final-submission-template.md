@@ -5,18 +5,19 @@
 > 有效提交判定：Issue 获得 `submission:accepted` 标签 + 归档回执。
 > 截止：2026-08-25 12:00 UTC+8（以 Issue created_at 为准）。
 
-## 预检输出（准备阶段已通过）
+## 预检输出（提交前必须重新运行）
 
 ```text
 ✅ 本地提交预检通过
 Team ID: everest-an
 Fork repository: https://github.com/everest-an/LoomQ-2026
-Commit SHA: afcbfddaaea7112429579d3e9740c4bfc076b486
+Commit SHA: <PREFLIGHT_SHA_占位符——以下命令的实际输出为准>
 Deadline: 2026-08-25 12:00 UTC+8
 ```
 
-> ⚠️ 提交前必须重新运行一次预检获取**最新** commit SHA：
+> ⚠️ **提交前必须重新运行预检**，用输出的 40 位 SHA 替换上方占位符：
 > `python3 starter_kit/prepare_submission.py --team-id everest-an`
+> （每次新提交都会改变 SHA，模板不写死具体值以避免过期。）
 
 ## Issue 表单字段（按表单顺序填写）
 
