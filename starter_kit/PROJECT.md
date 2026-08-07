@@ -43,7 +43,10 @@
 | 官方 evaluator | 评测契约 L1/L2/L3 | `python3 starter_kit/evaluator.py --level declared --target spinq,originq,braket` |
 | `selftest_fhb.py` | FHB 闭式解：转译器语义保持（t=π/4 均匀、t=π 回返） | `python3 starter_kit/selftest_fhb.py` |
 | `selftest_l3.py` | 混合编译：穷举测量注入 vs 参考解释器 | `python3 starter_kit/selftest_l3.py` |
-| `selftest_roundtrip.py` | 隐藏电路风格（QFT-4/Grover-3/随机）转译位级一致 | `python3 starter_kit/selftest_roundtrip.py` |
+| `selftest_l3_fuzz.py` | L3 模糊测试：150 组随机 Hybrid-QASM（嵌套/负数/多测量位/表达式链）穷举验证 | `python3 starter_kit/selftest_l3_fuzz.py` |
+| `selftest_roundtrip.py` | 隐藏电路风格（QFT-4/Grover-3/随机 5-12 比特）转译位级一致 | `python3 starter_kit/selftest_roundtrip.py` |
+| `selftest_l2_variants.py` | L2 变体鲁棒性：10 组改写措辞的分类路由 + 端到端（需 LLM 环境变量） | `python3 starter_kit/selftest_l2_variants.py` |
+| `selftest_quantum_isa.py` | 量子 RISC-V 扩展端到端 | `python3 starter_kit/selftest_quantum_isa.py` |
 | `examples/verify_originir.py` | **本源官方 SDK 交叉验证**：pyqpanda 解析并运行我们的 OriginIR | 在 python:3.10 + pyqpanda 容器中运行 |
 | `examples/verify_spinq_sim.py` | **量旋官方 SDK 交叉验证**：spinqit 编译运行我们的 spinq QASM 2.0（fidelity 1.000） | 在 python:3.10 + spinqit 容器中运行 |
 | `examples/verify_braket.py` | **AWS 官方 SDK 交叉验证**：Braket LocalSimulator 解析运行我们的 braket QASM 3（fidelity 0.996/0.999） | 在 python:3.10 + amazon-braket-sdk 容器中运行（依赖同目录 vendored `stdgates.inc`，Apache-2.0，vendored 自 OpenQASM 项目 commit 4ca1d793） |
@@ -90,10 +93,13 @@ FHB 论文对此有明确边界说明。）
   8192 shots 不随比特数线性恶化
 - **LLM 输出结构化自验**：Agent 的每个回答都经过本地解析 + 模拟 + 语义评审三层检查，
   失败时把具体错误喂回模型重试（QAgent/QUASAR 论文验证过的闭环模式）
+- **多任务路由（MTL 风格）**：LLM few-shot 三分类（GENERATE/FIX/SELECT）替代关键字匹配，
+  对改写措辞的评测变体鲁棒（10/10 变体测试）；语义评审返回具体原因喂回重试
+- **L3 负数支持**：parser 支持负数字面量（`r1 = -50`），随机模糊测试 150 组穷举全过
 - **L3 穷举正确性**：经典块编译为 RISC-V 后用官方模拟器穷举注入所有测量组合，
-  与 Python 参考解释器逐寄存器比对（10 组用例全过）
-- **round-trip 位级断言**：隐藏电路风格程序经 transpile → 重新解析 → 模拟，
-  与原始分布逐位相同——转译器语义保持的最强断言
+  与 Python 参考解释器逐寄存器比对（固定 10 组 + 模糊 150 组全过）
+- **round-trip 位级断言**：隐藏电路风格程序（含 12 比特大电路）经 transpile →
+  重新解析 → 模拟，与原始分布逐位相同——转译器语义保持的最强断言
 
 ## 参赛 Level 声明
 

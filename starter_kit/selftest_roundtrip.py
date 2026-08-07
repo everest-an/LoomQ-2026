@@ -134,6 +134,8 @@ def main() -> int:
         ("random1", build_random(5, 24, seed=1)),
         ("random2", build_random(6, 30, seed=2)),
         ("random3", build_random(7, 36, seed=3)),
+        ("random4", build_random(10, 50, seed=4)),
+        ("random5", build_random(12, 60, seed=5)),
     ]
     for label, qasm in cases:
         try:

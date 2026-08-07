@@ -59,12 +59,31 @@ _SYSTEM_FIX = (
     "只输出修复后的 QASM 代码本身，不要任何解释或 markdown 围栏。"
 )
 
-_SYSTEM_JUDGE = (
-    "你是量子电路语义评审员。判断给定 QASM 是否在语义上实现了用户的意图"
-    "（例如目标纠缠态、制备的量子态）。只回答 YES 或 NO；若 NO，附加一句不超过 20 字的原因。"
+_SYSTEM_CLASSIFY = (
+    "你是 LoomQ 任务分类器。把用户请求分类为三类之一：\n"
+    "GENERATE：要求生成/制备/创建/写出量子电路（自然语言描述目标态或算法）\n"
+    "FIX：给出一段有问题的电路代码并要求修复/调试/改正（请求里包含代码片段或引用报错）\n"
+    "SELECT：询问选择哪个后端/平台/模拟器（涉及比特数、排队、费用、速度等约束）\n"
+    "示例：\n"
+    "「生成一个 3 比特 GHZ 态并进行全测量」→ GENERATE\n"
+    "「制备一个 2 比特的贝尔态电路」→ GENERATE\n"
+    "「我想让两个量子比特纠缠起来，给我电路」→ GENERATE\n"
+    "「我想制备贝尔态，但这段代码报错了，帮我修好：H q[0]; CX q[0] q[1]」→ FIX\n"
+    "「这段电路有问题，帮我看看：H q[0]; CX q[0] q[1]」→ FIX\n"
+    "「这个代码跑不了，帮忙改正：H q[0]; CX q[0] q[1]」→ FIX\n"
+    "「我需要运行 20 比特电路且零排队，选哪个平台？」→ SELECT\n"
+    "「免费的模拟器有哪几个？我想跑 20 比特」→ SELECT\n"
+    "「20 比特的电路用 Braket 还是 SpinQ 更合适？」→ SELECT\n"
+    "只输出一个类别名（GENERATE / FIX / SELECT），不要输出其他内容。"
 )
 
-MAX_ROUNDS = 2  # initial + retries
+_SYSTEM_JUDGE = (
+    "你是量子电路语义评审员。判断给定 QASM 是否在语义上实现了用户的意图"
+    "（例如目标纠缠态、制备的量子态、声明的比特数与测量方式）。\n"
+    "以「YES」或「NO」开头；若 NO，冒号后给出具体原因（缺了什么/哪里不对，不超过 30 字）。"
+)
+
+MAX_ROUNDS = 3  # initial + retries (each LLM call is seconds; budget 120s/case)
 _SMOKE_SHOTS = 256
 
 
@@ -111,43 +130,83 @@ def _ask_llm(system: str, user: str) -> str:
     return _complete([{"role": "system", "content": system}, {"role": "user", "content": user}])
 
 
-def _semantically_ok(user_prompt: str, qasm: str) -> bool:
-    """Ask the model whether the candidate QASM matches the declared intent."""
+def _classify(prompt: str) -> str:
+    """LLM-based task classification (robust to reworded prompts).
+
+    Falls back to keyword heuristics when the model is unavailable or the
+    reply is not a recognizable category, so a transient API failure never
+    hard-fails a case.
+    """
+    try:
+        reply = _ask_llm(_SYSTEM_CLASSIFY, "用户请求：%s" % prompt).strip().upper()
+        for category in ("GENERATE", "FIX", "SELECT"):
+            if category in reply:
+                return category
+    except Exception:  # noqa: BLE001 - fall through to heuristics
+        pass
+    # keyword fallback (unchanged behavior)
+    lowered = prompt.lower()
+    if any(token in prompt for token in ("选", "推荐", "哪个")) or "后端" in lowered or "平台" in lowered:
+        return "SELECT"
+    if any(token in lowered for token in ("修", "错", "报错", "fix", "error", "debug")):
+        return "FIX"
+    return "GENERATE"
+
+
+def _semantic_review(user_prompt: str, qasm: str) -> Tuple[bool, str]:
+    """Ask the model whether the candidate QASM matches the declared intent.
+
+    Returns (ok, reason): on NO the reason is a concrete, targeted hint that
+    the generator can use for its next attempt (aux-task signal, MTL-style).
+    Never blocks the pipeline: on API failure we ship the candidate.
+    """
     try:
         verdict = _ask_llm(
             _SYSTEM_JUDGE,
             "用户意图：%s\nQASM：\n%s\n该 QASM 是否实现用户意图？（YES/NO）" % (user_prompt, qasm),
         )
     except Exception:  # noqa: BLE001 - judge is advisory; never block on it
-        return True
-    return verdict.strip().upper().startswith("YES")
+        return True, ""
+    upper = verdict.strip().upper()
+    if upper.startswith("YES"):
+        return True, ""
+    reason = verdict.split(":", 1)[-1].strip() if ":" in verdict else verdict.strip()
+    reason = (reason or "语义评审未通过")[:80]
+    return False, reason
 
 
 def _generate_or_fix(system: str, prompt: str) -> str:
-    """Generation/fix loop: LLM candidate -> local verify -> targeted retry."""
-    user = prompt if system == _SYSTEM_FIX else prompt
+    """Generation/fix loop: LLM candidate -> local verify -> targeted retry.
+
+    The loop feeds concrete failure signals back into the next attempt:
+    structural errors from the L1 parser/simulator, and the semantic
+    reviewer's specific reason when the circuit misses the intent.
+    """
+    last_error = ""
     for attempt in range(MAX_ROUNDS):
         if attempt == 0:
-            reply = _ask_llm(system, user)
+            reply = _ask_llm(system, prompt)
         else:
             reply = _ask_llm(
                 system,
                 "上一次输出无效，错误信息：%s\n用户意图/需求：%s\n请重新输出完整 QASM。"
-                % (last_error, user),
+                % (last_error, prompt),
             )
         qasm = _extract_qasm(reply)
         if qasm is None:
             last_error = "回复中没有包含 OPENQASM 2.0 程序"
             continue
-        ok, last_error = _validate_qasm(qasm)
-        if ok and _semantically_ok(prompt, qasm):
-            return qasm
+        ok, error = _validate_qasm(qasm)
         if not ok:
-            continue  # structural failure -> retry with the error
-        # structural pass but semantic judge says NO -> one retry, then ship
+            last_error = error  # structural failure -> retry with the error
+            continue
+        semantic_ok, reason = _semantic_review(prompt, qasm)
+        if semantic_ok:
+            return qasm
+        # structural pass but semantic reviewer says NO -> one targeted retry
         if attempt == MAX_ROUNDS - 1:
             return qasm
-        last_error = "语义评审未通过：电路可能没有实现用户意图"
+        last_error = reason
     return ""
 
 
@@ -173,13 +232,9 @@ def _select_backend(prompt: str) -> str:
 def agent_chat(prompt: str) -> str:
     """LoomQ L2 entry point: classify, solve, self-verify, return the answer."""
     start = time.monotonic()
-    lowered = prompt.lower()
-    deadline = start + 110.0  # stay inside the 120s per-case budget
-
-    if "选" in prompt or "推荐" in prompt or "哪个" in prompt or "后端" in lowered or "平台" in lowered:
-        answer = _select_backend(prompt)
-    elif "修" in prompt or "错" in prompt or "报错" in lowered or "fix" in lowered or "error" in lowered:
-        answer = _generate_or_fix(_SYSTEM_FIX, prompt)
-    else:
-        answer = _generate_or_fix(_SYSTEM_GENERATE, prompt)
-    return answer
+    category = _classify(prompt)
+    if category == "SELECT":
+        return _select_backend(prompt)
+    if category == "FIX":
+        return _generate_or_fix(_SYSTEM_FIX, prompt)
+    return _generate_or_fix(_SYSTEM_GENERATE, prompt)

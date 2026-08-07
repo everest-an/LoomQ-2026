@@ -110,7 +110,7 @@ class _Tokenizer:
         return token
 
 
-def _parse_operand(tok: Tuple[str, str]) -> Operand:
+def _parse_operand(tok: Tuple[str, str], tokens: Optional["_Tokenizer"] = None) -> Operand:
     kind, value = tok
     if kind == "num":
         return ("imm", int(value))
@@ -118,6 +118,13 @@ def _parse_operand(tok: Tuple[str, str]) -> Operand:
         return ("reg", int(value[1:]))
     if kind == "cbit":
         return ("cbit", int(value[2:-1]))
+    if kind == "op" and value == "-" and tokens is not None:
+        # unary minus: '-' immediately followed by a number literal
+        nxt = tokens.peek()
+        if nxt is not None and nxt[0] == "num":
+            tokens.next()
+            return ("imm", -int(nxt[1]))
+        raise ClassicParseError("expected operand after '-', got %r" % (nxt,))
     raise ClassicParseError("expected operand, got %r" % (value,))
 
 
@@ -166,22 +173,22 @@ class _Parser:
         return If(cond=cond, then_body=then_body, else_body=else_body)
 
     def _parse_cond(self) -> Cond:
-        left = _parse_operand(self.tokens.next())
+        left = _parse_operand(self.tokens.next(), self.tokens)
         op_token = self.tokens.expect("op")
         if op_token[1] not in ("==", "!="):
             raise ClassicParseError("expected == or != in condition")
-        right = _parse_operand(self.tokens.next())
+        right = _parse_operand(self.tokens.next(), self.tokens)
         return Cond(left=left, op=op_token[1], right=right)
 
     def _parse_expr(self) -> List[Tuple[str, Operand]]:
-        first = _parse_operand(self.tokens.next())
+        first = _parse_operand(self.tokens.next(), self.tokens)
         expr: List[Tuple[str, Operand]] = [("=", first)]
         while True:
             peek = self.tokens.peek()
             if peek is None or peek[0] != "op" or peek[1] not in ("+", "-"):
                 break
             op = self.tokens.next()[1]
-            expr.append((op, _parse_operand(self.tokens.next())))
+            expr.append((op, _parse_operand(self.tokens.next(), self.tokens)))
         return expr
 
 
