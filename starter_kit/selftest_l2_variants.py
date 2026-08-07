@@ -6,10 +6,11 @@ keyword fallback) must route every variant to the right solver, and the
 solver must return a structurally valid answer.
 """
 
+import json
 import sys
 
 sys.path.insert(0, "starter_kit")
-from agent import _classify, _extract_qasm, _valid_backend_ids
+from agent import _classify, _extract_qasm, _valid_backend_ids, _rule_filter_backends, _load_capabilities
 from adapter import agent_chat
 
 VARIANT_CASES = [
@@ -26,7 +27,30 @@ VARIANT_CASES = [
     ("SELECT", "20 比特的电路用 Braket 还是 SpinQ 更合适"),
 ]
 
+# --- Deterministic rule filter tests (no LLM needed) -------------------------
+
+RULE_CASES = [
+    ("运行一个 15 比特电路，要零排队等待",
+     {"braket_local_simulator", "originq_local_simulator", "spinq_taurus_simulator"}),
+    ("免费的模拟器有哪几个？我想跑 20 比特",
+     {"braket_local_simulator", "originq_local_simulator", "spinq_taurus_simulator"}),
+    ("选个后端跑真机",
+     {"braket_cloud", "originq_wukong", "spinq_cloud_qpu"}),
+]
+
 failures = 0
+
+# 1. Rule filter unit tests
+data = json.loads(_load_capabilities())
+for prompt, expected_set in RULE_CASES:
+    hits = _rule_filter_backends(prompt, data)
+    ok = hits == expected_set
+    if not ok:
+        failures += 1
+    print("[%s] rule: %s -> %s (expected %s)" % (
+        "OK " if ok else "BAD", prompt, sorted(hits), sorted(expected_set)))
+
+# 2. Classification variants
 for expected, prompt in VARIANT_CASES:
     try:
         got = _classify(prompt)
@@ -56,8 +80,13 @@ for expected, prompt in E2E:
                 failures += 1
         else:
             valid = any(bid in answer for bid in _valid_backend_ids())
-            print("[%s] e2e:SELECT valid_backend_id=%s | %s" % ("OK " if valid else "BAD", valid, prompt))
-            if not valid:
+            # rule-based guarantee: for constraint-carrying prompts, the
+            # reply MUST lie inside the deterministic legal set
+            rule_hits = _rule_filter_backends(prompt, json.loads(_load_capabilities()))
+            in_legal_set = (not rule_hits) or any(bid in answer for bid in rule_hits)
+            print("[%s] e2e:SELECT valid_backend_id=%s in_legal_set=%s | %s" % (
+                "OK " if valid and in_legal_set else "BAD", valid, in_legal_set, prompt))
+            if not (valid and in_legal_set):
                 failures += 1
     except Exception as exc:
         failures += 1

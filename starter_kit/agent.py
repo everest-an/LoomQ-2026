@@ -210,23 +210,86 @@ def _generate_or_fix(system: str, prompt: str) -> str:
     return ""
 
 
+def _rule_filter_backends(prompt: str, data: Dict) -> set:
+    """Deterministic constraint filter over the capability table.
+
+    Extracts explicit constraints (qubit count, no-queue, free, simulator)
+    from the prompt and returns the set of backend ids that satisfy them.
+    An empty set means the prompt carries no machine-extractable constraint.
+    """
+    lowered = prompt.lower()
+    hits = set()
+    bit_match = re.search(r"(\d+)\s*比特", prompt) or re.search(r"(\d+)\s*qubits?", lowered)
+    for entry in data["backends"]:
+        bid = entry["id"]
+        if bit_match and int(bit_match.group(1)) > entry["max_qubits"]:
+            continue
+        if ("零排队" in prompt or "无排队" in prompt or "不排队" in prompt) and entry["queue"] != "none":
+            continue
+        if ("免费" in prompt or "free" in lowered) and entry["cost"] == "paid":
+            continue
+        if "付费" in prompt and entry["cost"] in ("free", "free_quota"):
+            continue
+        if ("模拟器" in prompt or "simulator" in lowered) and entry["kind"] != "simulator":
+            continue
+        if "真机" in prompt and entry["kind"] not in ("qpu", "cloud"):
+            continue
+        hits.add(bid)
+    return hits
+
+
+def _pick_fallback(hits: set, data: Dict) -> str:
+    """Deterministic pick inside the legal set: simulator > cloud > qpu,
+    no-account first, larger max_qubits first."""
+    order = {"simulator": 0, "cloud": 1, "qpu": 2}
+    by_id = {entry["id"]: entry for entry in data["backends"]}
+
+    def key(bid: str):
+        entry = by_id[bid]
+        return (
+            order.get(entry["kind"], 9),
+            entry.get("requires_account", True),
+            -entry["max_qubits"],
+        )
+
+    return min(hits, key=key)
+
+
 def _select_backend(prompt: str) -> str:
-    """Backend selection: answer must be a canonical id from the capability table."""
+    """Backend selection: answer must be a canonical id in the capability table.
+
+    Two-layer safety: the LLM picks with the capability table in context, and
+    a deterministic rule filter over explicit constraints (qubits/queue/cost/
+    kind) guarantees the returned id lies inside the legal answer set the
+    evaluator checks against. When the rules extract constraints, a reply
+    outside the legal set is never shipped.
+    """
     table = _load_capabilities()
+    data = json.loads(table)
     valid = _valid_backend_ids()
+    rule_hits = _rule_filter_backends(prompt, data)
+    hint = ""
+    if rule_hits:
+        hint = (
+            "\n根据你请求中的约束条件，合法后端集合为：%s。"
+            "必须从其中选择一个并只输出其 id。" % ", ".join(sorted(rule_hits))
+        )
     system = (
         "你是 LoomQ 后端选型顾问。根据用户需求（比特数、排队、费用等约束）从能力表中选择最合适的后端。\n"
-        "能力表（JSON）：%s\n只输出一个后端的 id（如 braket_local_simulator），不要输出任何其他内容。" % table
+        "能力表（JSON）：%s\n只输出一个后端的 id（如 braket_local_simulator），不要输出任何其他内容。%s"
+        % (table, hint)
     )
     for attempt in range(MAX_ROUNDS):
         reply = _ask_llm(system, prompt)
         candidate = reply.strip()
         for backend_id in valid:
             if backend_id in candidate:
+                if rule_hits and backend_id not in rule_hits:
+                    break  # LLM violated an explicit constraint -> retry
                 return backend_id
-        if attempt == MAX_ROUNDS - 1:
-            return candidate  # best effort; evaluator checks the reply
-    return ""
+        if attempt == MAX_ROUNDS - 1 and rule_hits:
+            return _pick_fallback(rule_hits, data)
+    return candidate
 
 
 def agent_chat(prompt: str) -> str:

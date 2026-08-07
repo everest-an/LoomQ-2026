@@ -26,8 +26,8 @@ except ImportError:  # standalone-module fallback
     import adapter
 
 NUM_CASES = 150
-MAX_CBITS = 4
-MAX_DEPTH = 3
+MAX_CBITS = 5
+MAX_DEPTH = 5
 SEED = 20260807
 
 

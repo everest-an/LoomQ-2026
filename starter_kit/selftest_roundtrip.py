@@ -126,11 +126,27 @@ def check_roundtrip(label: str, qasm: str) -> None:
     )
 
 
+def build_ghz5() -> str:
+    """5-qubit GHZ state (hidden-circuit style): h q[0] + cx chain."""
+    lines = [
+        "OPENQASM 2.0;",
+        'include "qelib1.inc";',
+        "qreg q[5];",
+        "creg c[5];",
+        "h q[0];",
+    ]
+    for i in range(4):
+        lines.append("cx q[%d], q[%d];" % (i, i + 1))
+    lines.append("measure q -> c;")
+    return "\n".join(lines) + "\n"
+
+
 def main() -> int:
     failures = 0
     cases = [
         ("qft4", build_qft4()),
         ("grover3", build_grover3()),
+        ("ghz5", build_ghz5()),
         ("random1", build_random(5, 24, seed=1)),
         ("random2", build_random(6, 30, seed=2)),
         ("random3", build_random(7, 36, seed=3)),
